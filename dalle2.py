@@ -1,12 +1,8 @@
-import asyncio
 import time
-
 import openai
 import requests
 from PIL import Image
-import os
 import concurrent.futures
-
 import boto3
 from io import BytesIO
 
@@ -16,6 +12,7 @@ bucket_name = "dalle2-exoplanets"
 # Create a new S3 client
 s3 = boto3.client("s3")
 
+#TODO: move to env file
 openai.api_key = "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"
 
 

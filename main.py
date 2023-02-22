@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import when, col
 
-from dalle2 import generate_and_save_image
+from dalle2 import generate_and_save_images
 
 jupiter_mass = 1.89813e27  # kilograms
 earth_mass = 5.9722e24  # kilograms
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     exoplanets_df = exoplanets_df.repartition(int(num_partitions), col("planet_type"))
 
     # TODO: submit 50 images async, wait, and then continue
-    exoplanets_df.limit(10).foreachPartition(lambda rows: generate_and_save_image(rows))
+    exoplanets_df.limit(10).foreachPartition(lambda rows: generate_and_save_images(rows))
 
     # Stop the Spark session
     spark.stop()

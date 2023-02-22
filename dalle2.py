@@ -1,14 +1,40 @@
+import asyncio
+import time
+
 import openai
 import requests
 from PIL import Image
 import os
+import concurrent.futures
+
+import boto3
+from io import BytesIO
+
+# Define the S3 bucket and object key
+bucket_name = "dalle2-exoplanets"
+
+# Create a new S3 client
+s3 = boto3.client("s3")
 
 openai.api_key = "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"
 
 
-# Define a function to generate an image using DALL-E 2 and save it to a local directory
-def generate_and_save_image(rows):
-    for row in rows:
+def upload_image(image, file_name):
+    try:
+        # Save the PIL Image to a buffer
+        buffer = BytesIO()
+        image.save(buffer, format="JPEG")
+
+        # Reset buffer position and upload to the S3 bucket
+        buffer.seek(0)
+        s3.upload_fileobj(buffer, bucket_name, file_name)
+    except Exception as e:
+        print("There was a problem uploading {0} to s3".format(file_name))
+        print(e)
+
+
+def call_dalle2(row):
+    try:
         prompt = "The landscape of a {planet_type} that is {distance} from earth and is called {name}." \
                  "It has a mass of {mass} kilograms and radius of {radius} kilometers." \
             .format(planet_type=row['planet_type'], distance=row['distance'],
@@ -21,13 +47,19 @@ def generate_and_save_image(rows):
             size="1024x1024"
         )
 
-        # Get the URL of the generated image from the API response
-        image_url = response['data'][0]['url']
-        print(image_url)
+        # download image from url and upload to s3
+        image = Image.open(requests.get(response['data'][0]['url'], stream=True).raw)
+        file_name = row['name'] + ".jpg"
+        upload_image(image, file_name)
+    except Exception as e:
+        print("There was a problem generating the image")
+        print(e)
 
-        # TODO: save the images to s3 and urls in MongoDB, then display them in react app. Put in docker container and
-        # deploy to aws
 
-        # Download the image and save it to the local directory
-        # image = Image.open(requests.get(image_url, stream=True).raw)
-        # image.save(os.path.join('/Users/james/desktop/images/', row["name"] + "_" + row["planet_type"] + ".png"))
+def generate_and_save_images(rows):
+    print("Processing partition")
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(call_dalle2, rows)
+
+    print("Partition processed, sleeping for 60 second to ensure api limit isn't hit")
+    time.sleep(60)

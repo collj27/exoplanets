@@ -51,6 +51,6 @@ if __name__ == '__main__':
     spark = SparkSession.builder.appName('DALL-E 2 Image Generation').getOrCreate()
     configurations = spark.sparkContext.getConf().getAll()
 
-    main(args)  # generate expolanets
+    main(args)  # generate exoplanets
 
     spark.stop()  # Stop the Spark session

@@ -17,7 +17,6 @@ def main(args):
     # read in spark df
     exoplanets_df = spark.read.option("header", True).csv("cleaned_5250.csv")
 
-
     # calculate mass
     exoplanets_df = exoplanets_df.withColumn("mass",
                                              when(col("mass_wrt") == "Jupiter", col("mass_multiplier") * jupiter_mass)
@@ -42,11 +41,10 @@ def main(args):
         exoplanets_df.foreachPartition(lambda rows: generate_and_save_images(rows))
 
 
-# TODO: deploy docker container to aws, upload data to mongo
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='A script that uses dalle2 to generate images of exoplanets and '
                                                  'uploads to s3')
-    parser.add_argument("--test_run", default=False,  help="run with only 10 images to test changes to script")
+    parser.add_argument("--test_run", default=False, help="run with only 10 images to test changes to script")
     args = parser.parse_args()
 
     # Create a Spark session

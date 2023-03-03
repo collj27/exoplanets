@@ -3,7 +3,7 @@ from io import BytesIO
 import boto3
 
 # Define the S3 bucket and object key
-bucket_name = "dalle2-exoplanets"
+bucket_name = "dalle2-exoplanets-prod"
 
 # Create a new S3 client
 s3 = boto3.client("s3")

@@ -1,29 +1,45 @@
+import os
+import time
 import openai
 import requests
 from PIL import Image
-import os
+import concurrent.futures
+import sys
+from s3 import upload_image
 
-openai.api_key = "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"
+openai.api_key="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" #os.environ["OPENAI_API_KEY"]
 
-# Define a function to generate an image using DALL-E 2 and save it to a local directory
-def generate_and_save_image(rows):
-    for row in rows:
+
+def call_dalle2(row):
+    try:
         prompt = "The landscape of a {planet_type} that is {distance} from earth and is called {name}." \
-                 "It has a mass of {mass} kilograms and radius of {radius} kilometers."\
+                 "It has a mass of {mass} kilograms and radius of {radius} kilometers." \
             .format(planet_type=row['planet_type'], distance=row['distance'],
                     name=row['name'], mass=row['mass'], radius=row['radius']
-        )
+                    )
         # Make the API request to DALL-E 2
         response = openai.Image.create(
             prompt=prompt,
             n=1,
-            size="256x256"
+            size="1024x1024"
         )
 
-        # Get the URL of the generated image from the API response
-        image_url = response['data'][0]['url']
-        print(image_url)
+        # download image from url and upload to s3
+        image = Image.open(requests.get(response['data'][0]['url'], stream=True).raw)
+        file_name = row['planet_type'] + '_' + row['name'] + ".jpg"
+        upload_image(image, file_name)
+    except openai.error.OpenAIError as e:
+        print(e.http_status)
+        print(e.error)
+        print("exiting thread")
+        sys.exit()
 
-        # Download the image and save it to the local directory
-        image = Image.open(requests.get(image_url, stream=True).raw)
-        image.save(os.path.join('/Users/james/desktop/images/', row["name"] + "_" + row["planet_type"] + ".png"))
+
+def generate_and_save_images(rows):
+    print("Processing partition")
+    # generate images in each partition concurrently
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(call_dalle2, rows)
+
+    print("Partition processed, sleeping for 60 second to ensure api limit isn't hit")
+    time.sleep(60)

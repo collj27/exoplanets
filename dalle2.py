@@ -7,7 +7,7 @@ import concurrent.futures
 import sys
 from s3 import upload_image
 
-openai.api_key="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" #os.environ["OPENAI_API_KEY"]
+openai.api_key = os.environ["OPENAI_API_KEY"]
 
 
 def call_dalle2(row):
